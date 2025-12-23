@@ -14,12 +14,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Debug step: print OIDC token claims
+      - name: Print OIDC Token Claims
+        run: |
+          echo "Requesting OIDC token from GitHub..."
+          TOKEN=$(curl -sLS "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.googleapis.com" \
+            -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" | jq -r '.value')
+          echo "Raw OIDC Token: $TOKEN"
+          echo "Decoded claims:"
+          echo "${TOKEN}" | cut -d "." -f2 | base64 -d | jq .
+
+      # Authenticate to GCP using WIF
       - name: Authenticate to GCP via WIF
         id: auth
         uses: google-github-actions/auth@v2
         with:
           token_format: 'access_token'
-          workload_identity_provider: projects/${{ secrets.GCP_PROJECT_ID }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          workload_identity_provider: projects/238647468466/locations/global/workloadIdentityPools/github-pool/providers/github-provider
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
 
       - name: Setup gcloud

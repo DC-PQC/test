@@ -1,4 +1,4 @@
-name: test-wif
+name: gcp-wif
 on:
   workflow_dispatch:
 
@@ -6,7 +6,7 @@ jobs:
   wif-test:
     permissions:
       contents: read
-      id-token: write    # Required for OIDC token
+      id-token: write   # Required for OIDC
     runs-on: ubuntu-latest
 
     steps:
@@ -19,21 +19,9 @@ jobs:
         with:
           workload_identity_provider: projects/${{ secrets.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
           service_account: github-wif-sa@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com
-          # Ensure audience defaults properly; usually no need to set for GitHub
 
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Print OIDC token claims (debug)
-        run: |
-          echo "Repository: $GITHUB_REPOSITORY"
-          echo "Workflow: $GITHUB_WORKFLOW"
-          echo "Actor: $GITHUB_ACTOR"
-
-      - name: Test access (list GCS buckets)
-        run: |
-          gcloud storage buckets list --project="${{ secrets.GCP_PROJECT_ID }}"
-- name: Print OIDC token claims
-  run: |
-    echo "${{ steps.auth.outputs.token }}"
-    curl -s -H "Authorization: Bearer ${{ steps.auth.outputs.token }}" https://oauth2.googleapis.com/tokeninfo
+      - name: Test access
+        run: gcloud storage buckets list --project=${{ secrets.GCP_PROJECT_ID }}

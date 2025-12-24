@@ -25,3 +25,8 @@ jobs:
 
       - name: Test access
         run: gcloud storage buckets list --project=${{ secrets.GCP_PROJECT_ID }}
+
+        - name: Print OIDC token claims
+  run: |
+    echo "${{ steps.auth.outputs.id_token }}" | jq -R 'split(".") | .[1] | @base64d | fromjson'
+

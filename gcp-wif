@@ -1,0 +1,31 @@
+name: gcp-wif
+on:
+  workflow_dispatch:
+
+jobs:
+  wif-test:
+    permissions:
+      contents: read
+      id-token: write   # Required for OIDC
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to GCP via WIF
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/${{ secrets.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-pool1/providers/github-provider
+          service_account: github-wif-sa@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Test access
+        run: gcloud storage buckets list --project=${{ secrets.GCP_PROJECT_ID }}
+
+        - name: Print OIDC token claims
+          run: |
+              echo "${{ steps.auth.outputs.id_token }}" | jq -R 'split(".") | .[1] | @base64d | fromjson'

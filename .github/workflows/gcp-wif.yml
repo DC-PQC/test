@@ -1,47 +1,39 @@
-name: GCP WIF Test
-
+name: test-wif
 on:
-  workflow_dispatch:   # run manually from Actions tab
-
-permissions:
-  id-token: write      # required for OIDC
-  contents: read
+  workflow_dispatch:
 
 jobs:
-  test-wif:
+  wif-test:
+    permissions:
+      contents: read
+      id-token: write    # Required for OIDC token
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Debug step: print OIDC token claims
-      - name: Print OIDC Token Claims
-        run: |
-          echo "Requesting OIDC token from GitHub..."
-          TOKEN=$(curl -sLS "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.googleapis.com" \
-            -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" | jq -r '.value')
-          echo "Raw OIDC Token: $TOKEN"
-          echo "Decoded claims:"
-          echo "${TOKEN}" | cut -d "." -f2 | base64 -d | jq .
-
-      # Authenticate to GCP using WIF
       - name: Authenticate to GCP via WIF
         id: auth
         uses: google-github-actions/auth@v2
         with:
-          token_format: 'access_token'
-          workload_identity_provider: projects/238647468466/locations/global/workloadIdentityPools/github-pool/providers/github-provider
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+          workload_identity_provider: projects/${{ secrets.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: github-wif-sa@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com
+          # Ensure audience defaults properly; usually no need to set for GitHub
 
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Test access
-        env:
-          CLOUDSDK_CORE_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
-          CLOUDSDK_AUTH_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+      - name: Print OIDC token claims (debug)
         run: |
-          echo "Authenticated as:"
-          gcloud auth list
-          echo "Listing buckets in project:"
-          gcloud storage buckets list --project "${CLOUDSDK_CORE_PROJECT}"
+          echo "Repository: $GITHUB_REPOSITORY"
+          echo "Workflow: $GITHUB_WORKFLOW"
+          echo "Actor: $GITHUB_ACTOR"
+
+      - name: Test access (list GCS buckets)
+        run: |
+          gcloud storage buckets list --project="${{ secrets.GCP_PROJECT_ID }}"
+- name: Print OIDC token claims
+  run: |
+    echo "${{ steps.auth.outputs.token }}"
+    curl -s -H "Authorization: Bearer ${{ steps.auth.outputs.token }}" https://oauth2.googleapis.com/tokeninfo

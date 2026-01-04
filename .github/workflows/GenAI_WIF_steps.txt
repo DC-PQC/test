@@ -1,0 +1,52 @@
+gcloud services enable \
+iamcredentials.googleapis.com \
+sts.googleapis.com \
+aiplatform.googleapis.com
+
+------------------------
+
+verify:
+
+gcloud services list --enabled | grep -E "iamcredentials|sts|aiplatform"
+
+-----------------
+
+Grant Vertex AI Permission
+
+gcloud projects add-iam-policy-binding prefab-bounty-480110-d2 \
+  --member="serviceAccount:azure-wif-sa@prefab-bounty-480110-d2.iam.gserviceaccount.com" \
+  --role="roles/aiplatform.user"
+
+------------------------------
+
+Allow WIF Impersonation (CRITICAL)
+
+gcloud iam service-accounts add-iam-policy-binding \
+azure-wif-sa@prefab-bounty-480110-d2.iam.gserviceaccount.com \
+--role="roles/iam.workloadIdentityUser" \
+--member="principalSet://iam.googleapis.com/projects/238647468466/locations/global/workloadIdentityPools/azure-pool1/*"
+
+
+------------------------------------
+
+(Optional) Debug / Read-only Role
+
+gcloud projects add-iam-policy-binding prefab-bounty-480110-d2 \
+  --member="serviceAccount:azure-wif-sa@prefab-bounty-480110-d2.iam.gserviceaccount.com" \
+  --role="roles/aiplatform.viewer"
+
+
+-------------------------------
+
+List AVAILABLE GenAI models (IMPORTANT)
+
+gcloud ai models list \
+  --region=us-central1 \
+  --filter="displayName:gemini"
+
+-----------------------------
+Run from Cloud Shell or your local VM:
+
+gsutil iam ch \
+  serviceAccount:service-238647468466@gcp-sa-aiplatform.iam.gserviceaccount.com:roles/storage.objectAdmin \
+  gs://prefab-genai-eval-bucket
